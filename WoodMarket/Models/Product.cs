@@ -76,5 +76,7 @@ namespace WoodMarket.Models
         public ICollection<WishlistItem> WishlistItems { get; set; }
         public ICollection<ProductTag> ProductTags { get; set; }
         public ICollection<ProductSpecification> Specifications { get; set; }
+
+        public ICollection<CartItem> CartItems { get; set; }
     }
 }

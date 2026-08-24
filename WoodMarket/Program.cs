@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Globalization;
 using System.Text;
+using WoodMarket.Dto;
 using WoodMarket.Models;
 
 namespace WoodMarket
@@ -23,8 +26,20 @@ namespace WoodMarket
 
             builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
             {
-                options.Password.RequireNonAlphanumeric = false;
+                // Настройки пароля
+                options.Password.RequireDigit = true;
                 options.Password.RequiredLength = 6;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireLowercase = false;
+
+                // Блокировка
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.AllowedForNewUsers = true;
+
+                // Пользователь
+                options.User.RequireUniqueEmail = true;
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
@@ -40,7 +55,7 @@ namespace WoodMarket
                 options.SupportedUICultures = supportedCultures;
             });
 
-            var jwtSettings = builder.Configuration.GetSection("Jwt");
+            var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
 
             builder.Services.AddAuthentication(options =>
             {
@@ -55,11 +70,16 @@ namespace WoodMarket
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtSettings["Issuer"],
-                    ValidAudience = jwtSettings["Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSettings["Key"]))
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ClockSkew = TimeSpan.Zero // Убираем задержку
                 };
+            });
+
+            builder.Services.AddAutoMapper(cfg =>
+            {
+                cfg.AddProfile<MappingProfile>();
             });
 
             builder.Services.AddAuthorization();
@@ -98,7 +118,7 @@ namespace WoodMarket
             app.UseRequestLocalization();
 
             app.UseCors("AllowAll");
-            
+
 
             //app.UseHttpsRedirection();
 

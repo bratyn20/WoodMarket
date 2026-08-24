@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WoodMarket.Dto;
 using WoodMarket.Models;
 
 namespace WoodMarket.Controllers
@@ -9,37 +11,28 @@ namespace WoodMarket.Controllers
     public class CatalogController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IMapper _mapper;
 
-        public CatalogController(AppDbContext context)
+        public CatalogController(AppDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        // GET: api/catalog/categories
         [HttpGet("categories")]
         public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
         {
             var categories = await _context.Categories
                 .Where(c => c.ParentCategoryId == null)
-                .Select(c => new CategoryDto
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Description = c.Description,
-                    Slug = c.Slug,
-                    ProductCount = _context.Products.Count(p => p.CategoryId == c.Id && p.IsActive),
-                    //ImageUrl = c.ImageUrl ?? "/images/categories/default.jpg",
-                    DisplayOrder = c.DisplayOrder
-                })
+                .Include(c => c.Products)
                 .OrderBy(c => c.DisplayOrder)
                 .ToListAsync();
 
-            return Ok(categories);
+            return Ok(_mapper.Map<List<CategoryDto>>(categories));
         }
 
-        // GET: api/catalog/products
         [HttpGet("products")]
-        public async Task<ActionResult<CatalogResponse>> GetProducts(
+        public async Task<ActionResult<CatalogResponseDto>> GetProducts(
             [FromQuery] CatalogFilter filter)
         {
             var query = _context.Products
@@ -50,7 +43,7 @@ namespace WoodMarket.Controllers
                 .Include(p => p.Images)
                 .Where(p => p.IsActive);
 
-            // Фильтры
+            // Фильтры...
             if (filter.CategoryId.HasValue)
                 query = query.Where(p => p.CategoryId == filter.CategoryId);
 
@@ -73,8 +66,7 @@ namespace WoodMarket.Controllers
             {
                 query = query.Where(p =>
                     p.Name.Contains(filter.SearchTerm) ||
-                    p.ShortDescription.Contains(filter.SearchTerm) ||
-                    p.Sku.Contains(filter.SearchTerm));
+                    p.ShortDescription.Contains(filter.SearchTerm));
             }
 
             // Сортировка
@@ -92,68 +84,27 @@ namespace WoodMarket.Controllers
             var products = await query
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
-                .Select(p => new ProductDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    ShortDescription = p.ShortDescription,
-                    Price = p.Price,
-                    OldPrice = p.OldPrice,
-                    MainImageUrl = p.MainImageUrl,
-                    AverageRating = p.Reviews.Any() ? p.Reviews.Average(r => r.Rating) : 0,
-                    ReviewCount = p.Reviews.Count(r => r.IsApproved),
-                    StockQuantity = p.StockQuantity,
-                    IsInStock = p.StockQuantity > 0,
-                    IsNew = p.IsNew,
-                    IsOnSale = p.OldPrice.HasValue,
-                    Slug = p.Slug,
-                    //MaterialName = p.Material.Name,
-                    //BrandName = p.Brand.Name
-                })
                 .ToListAsync();
 
-            // Данные для фильтров
             var materials = await _context.Materials
-                .Select(m => new FilterItemDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    Count = _context.Products.Count(p => p.MaterialId == m.Id && p.IsActive)
-                })
+                .Include(m => m.Products)
                 .ToListAsync();
 
             var brands = await _context.Brands
-                .Select(b => new FilterItemDto
-                {
-                    Id = b.Id,
-                    Name = b.Name,
-                    Count = _context.Products.Count(p => p.BrandId == b.Id && p.IsActive)
-                })
+                .Include(b => b.Products)
                 .ToListAsync();
 
-            return Ok(new CatalogResponse
+            return Ok(new CatalogResponseDto
             {
-                Products = products,
+                Products = _mapper.Map<List<ProductDto>>(products),
                 TotalItems = totalItems,
                 Page = filter.Page,
                 PageSize = filter.PageSize,
                 TotalPages = (int)Math.Ceiling((double)totalItems / filter.PageSize),
-                Materials = materials,
-                Brands = brands
+                Materials = _mapper.Map<List<MaterialDto>>(materials),
+                Brands = _mapper.Map<List<BrandDto>>(brands)
             });
         }
-    }
-
-    // DTOs
-    public class CategoryDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public string Slug { get; set; }
-        public int ProductCount { get; set; }
-        public string ImageUrl { get; set; }
-        public int DisplayOrder { get; set; }
     }
 
     public class CatalogFilter
@@ -168,23 +119,5 @@ namespace WoodMarket.Controllers
         public string SearchTerm { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
-    }
-
-    public class CatalogResponse
-    {
-        public List<ProductDto> Products { get; set; }
-        public int TotalItems { get; set; }
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public int TotalPages { get; set; }
-        public List<FilterItemDto> Materials { get; set; }
-        public List<FilterItemDto> Brands { get; set; }
-    }
-
-    public class FilterItemDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public int Count { get; set; }
     }
 }

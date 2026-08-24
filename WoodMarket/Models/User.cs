@@ -9,24 +9,23 @@ namespace WoodMarket.Models
     /// </summary>
     public class User : IdentityUser<int>
     {
-
-        [Required]
-        [MaxLength(100)]
-        public string Name { get; set; } = "testName";
-
-        [MaxLength(100)]
-        public string LastName { get; set; } = "testLastName";
-
-
-        public string City { get; set; } = "testCity";
-
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; }
+        public DateTime? LastLoginAt { get; set; }
+
+        // Для Refresh Token (если будете добавлять)
+        public string RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
 
         // Навигационные свойства
         public ICollection<Order> Orders { get; set; }
-        public ICollection<WishlistItem> WishlistItems { get; set; }
         public ICollection<Review> Reviews { get; set; }
+        public ICollection<WishlistItem> WishlistItems { get; set; }
+        public ICollection<CartItem> CartItems { get; set; }
+        public ICollection<CustomOrder> CustomOrders { get; set; }
+
+        public ICollection<CustomOrder> AssignedCustomOrders { get; set; }
         public ICollection<Address> Addresses { get; set; }
     }
 }

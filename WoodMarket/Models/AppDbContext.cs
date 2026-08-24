@@ -11,6 +11,7 @@ namespace WoodMarket.Models
         }
 
         //public DbSet<User> Users { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Brand> Brands { get; set; }
@@ -39,6 +40,21 @@ namespace WoodMarket.Models
         {
             base.OnModelCreating(modelBuilder);
 
+            // Уникальный индекс для корзины (один пользователь - один товар с одним вариантом)
+            modelBuilder.Entity<CartItem>(entity =>
+            {
+                entity.HasIndex(c => new { c.UserId, c.ProductId, c.VariantName })
+                      .IsUnique()
+                      .HasDatabaseName("IX_CartItem_User_Product_Variant");
+
+                // Если вариант не указан, считаем его пустой строкой
+                entity.Property(c => c.VariantName)
+                      .HasDefaultValue(string.Empty);
+
+                entity.Property(c => c.AddedAt)
+                      .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
             // User
             modelBuilder.Entity<User>(entity =>
             {
@@ -47,6 +63,12 @@ namespace WoodMarket.Models
                 entity.Property(u => u.CreatedAt)
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
+
+            //User - IdentityRole
+            modelBuilder.Entity<IdentityRole<int>>().HasData(
+                new IdentityRole<int> { Id = 1, Name = "Admin", NormalizedName = "ADMIN" },
+                new IdentityRole<int> { Id = 2, Name = "User", NormalizedName = "USER" }
+            );
 
             // Product
             modelBuilder.Entity<Product>(entity =>
@@ -123,6 +145,17 @@ namespace WoodMarket.Models
             {
                 entity.Property(c => c.EstimatedPrice).HasPrecision(18, 2);
                 entity.Property(c => c.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(co => co.User)
+                    .WithMany(u => u.CustomOrders) // ✅ Указываем первую коллекцию
+                    .HasForeignKey(co => co.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Связь 2: User -> AssignedCustomOrders (менеджер)
+                entity.HasOne(co => co.AssignedTo)
+                    .WithMany(u => u.AssignedCustomOrders) // ✅ Указываем вторую коллекцию
+                    .HasForeignKey(co => co.AssignedToUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // NewsletterSubscription
