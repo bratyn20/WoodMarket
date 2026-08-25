@@ -203,7 +203,7 @@ namespace WoodMarket.Controllers
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(1), // ✅ Токен живёт 1 день
+                expires: DateTime.UtcNow.AddDays(1), // Токен живёт 1 день
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

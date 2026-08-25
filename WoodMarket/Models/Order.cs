@@ -20,6 +20,8 @@ namespace WoodMarket.Models
 
         public DateTime OrderDate { get; set; } = DateTime.UtcNow;
 
+        public DateTime? UpdatedAt { get; set; }
+
         [Required]
         [MaxLength(50)]
         public string Status { get; set; } // New, Processing, Shipped, Delivered, Cancelled

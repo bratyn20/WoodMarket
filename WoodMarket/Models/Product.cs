@@ -54,6 +54,9 @@ namespace WoodMarket.Models
         public double? AverageRating { get; set; }
         public int ReviewCount { get; set; }
 
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
+
         // Внешние ключи
         public int? CategoryId { get; set; }
         public int? BrandId { get; set; }
