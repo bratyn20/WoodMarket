@@ -28,6 +28,19 @@ namespace WoodMarket.Dto
                 .ForMember(dest => dest.CategoryName,
                     opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null));
 
+            CreateMap<Product, AdminProductDto>()
+            .IncludeBase<Product, ProductDto>();
+
+            CreateMap<AdminProductUpdateDto, Product>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.IsInStock,
+                    opt => opt.MapFrom(src => src.StockQuantity > 0))
+                .ForMember(dest => dest.IsOnSale,
+                    opt => opt.MapFrom(src => src.OldPrice.HasValue))
+                .ForMember(dest => dest.UpdatedAt,
+                    opt => opt.MapFrom(src => DateTime.UtcNow));
+
+
             // ========================================
             // Product -> ProductFullDto (детальный)
             // ========================================

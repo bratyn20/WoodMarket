@@ -1,22 +1,26 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WoodMarket.Dto;
 using WoodMarket.Models;
 
 namespace WoodMarket.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin")]
-    [Authorize(Roles = "Admin")] // ✅ Только администраторы
+    //[Authorize(Roles = "Admin")] // ✅ Только администраторы
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _context;
         private readonly ILogger<AdminController> _logger;
+        private readonly IMapper _mapper;
 
-        public AdminController(AppDbContext context, ILogger<AdminController> logger)
+        public AdminController(AppDbContext context, ILogger<AdminController> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;
+            _mapper = mapper;
         }
 
         // ========================================
@@ -76,7 +80,7 @@ namespace WoodMarket.Controllers.Admin
         }
 
         [HttpGet("products/{id}")]
-        public async Task<IActionResult> GetProduct(int id)
+        public async Task<ActionResult<AdminProductDto>> GetProduct(int id)
         {
             var product = await _context.Products
                 .Include(p => p.Images)
@@ -91,7 +95,9 @@ namespace WoodMarket.Controllers.Admin
             if (product == null)
                 return NotFound(new { message = "Товар не найден" });
 
-            return Ok(product);
+            var dto = _mapper.Map<AdminProductDto>(product);
+
+            return Ok(dto);
         }
 
         [HttpPost("products")]
@@ -110,16 +116,16 @@ namespace WoodMarket.Controllers.Admin
         }
 
         [HttpPut("products/{id}")]
-        public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product product)
+        public async Task<IActionResult> UpdateProduct(int id, [FromBody] AdminProductUpdateDto dto)
         {
-            if (id != product.Id)
+            if (id != dto.Id)
                 return BadRequest(new { message = "ID не совпадают" });
 
             var existing = await _context.Products.FindAsync(id);
             if (existing == null)
                 return NotFound(new { message = "Товар не найден" });
 
-            _context.Entry(existing).CurrentValues.SetValues(product);
+            _mapper.Map(dto, existing);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Товар обновлён" });

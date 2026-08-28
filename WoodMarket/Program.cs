@@ -11,6 +11,7 @@ using System.Globalization;
 using System.Text;
 using WoodMarket.Dto;
 using WoodMarket.Models;
+using WoodMarket.Services;
 
 namespace WoodMarket
 {
@@ -96,6 +97,7 @@ namespace WoodMarket
                 });
             });
 
+
             builder.Services.AddControllers()
                 .AddDataAnnotationsLocalization();
 
@@ -137,6 +139,8 @@ namespace WoodMarket
                 });
             });
 
+            builder.Services.AddSingleton<IFileService, FileService>();
+
 
             var app = builder.Build();
 
@@ -160,8 +164,6 @@ namespace WoodMarket
 
             app.UseCors("AllowAll");
 
-
-            //app.UseHttpsRedirection();
 
             app.UseAuthentication();
             app.UseAuthorization();
