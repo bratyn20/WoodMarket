@@ -37,16 +37,14 @@
                 if (!Directory.Exists(uploadPath))
                     Directory.CreateDirectory(uploadPath);
 
-                // 6. Полный путь к файлу
+                // 6. Сохраняем файл
                 var filePath = Path.Combine(uploadPath, fileName);
-
-                // 7. Сохраняем файл
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
-                // 8. Возвращаем относительный URL
+                // 7. Возвращаем URL
                 return $"/images/products/{fileName}";
             }
             catch (Exception ex)
@@ -63,7 +61,6 @@
 
             try
             {
-                // Извлекаем физический путь из URL
                 var fileName = Path.GetFileName(imagePath);
                 var uploadPath = Path.Combine(_env.WebRootPath, "images", "products");
                 var filePath = Path.Combine(uploadPath, fileName);

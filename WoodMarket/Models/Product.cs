@@ -45,7 +45,6 @@ namespace WoodMarket.Models
 
         public bool IsActive { get; set; }
 
-        [MaxLength(200)]
         public string MainImageUrl { get; set; }
 
         [MaxLength(200)]

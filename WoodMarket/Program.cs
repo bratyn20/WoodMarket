@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
@@ -47,6 +48,16 @@ namespace WoodMarket
             .AddDefaultTokenProviders();
 
             builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+
+            builder.Services.AddSingleton<IFileService, FileService>();
+
+            // Настройка размера загружаемых файлов
+            builder.Services.Configure<FormOptions>(options =>
+            {
+                options.ValueLengthLimit = int.MaxValue;
+                options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10MB
+            });
 
             // Настраиваем поддержку русского языка
             builder.Services.Configure<RequestLocalizationOptions>(options =>
@@ -139,9 +150,6 @@ namespace WoodMarket
                 });
             });
 
-            builder.Services.AddSingleton<IFileService, FileService>();
-
-
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -164,6 +172,12 @@ namespace WoodMarket
 
             app.UseCors("AllowAll");
 
+            app.UseStaticFiles();
+
+            if (!Directory.Exists(Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "images", "products")))
+            {
+                Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "images", "products"));
+            }
 
             app.UseAuthentication();
             app.UseAuthorization();

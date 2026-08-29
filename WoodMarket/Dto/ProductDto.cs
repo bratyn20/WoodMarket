@@ -1,4 +1,6 @@
-﻿namespace WoodMarket.Dto
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace WoodMarket.Dto
 {
     public class ProductDto
     {
@@ -64,6 +66,64 @@
         public List<string> Tags { get; set; }
     }
 
+    public class ProductUpdateWithImageDto : AdminProductUpdateDto
+    {
+        public IFormFile? ImageFile { get; set; } // Одно изображение
+        public bool RemoveImage { get; set; }     // Флаг для удаления
+    }
+
+    public class ProductImageUploadDto
+    {
+        public int ProductId { get; set; }
+        public IFormFile Image { get; set; }
+    }
+
+    public class CreateProductDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Name { get; set; }
+
+        [MaxLength(1000)]
+        public string ShortDescription { get; set; }
+
+        public string FullDescription { get; set; }
+
+        [Required]
+        [Range(0, double.MaxValue)]
+        public decimal Price { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal? OldPrice { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal? CostPrice { get; set; }
+
+        [MaxLength(100)]
+        public string Sku { get; set; }
+
+        [Required]
+        [Range(0, int.MaxValue)]
+        public int StockQuantity { get; set; }
+
+        [Range(0, int.MaxValue)]
+        public int? LowStockThreshold { get; set; }
+
+        public bool IsNew { get; set; } = true;
+        public bool IsActive { get; set; } = true;
+
+        [Required]
+        public int CategoryId { get; set; }
+
+        [Required]
+        public int BrandId { get; set; }
+
+        [Required]
+        public int MaterialId { get; set; }
+
+        public IFormFile? ImageFile { get; set; }
+    }
+
     public class VariantDto
     {
         public int Id { get; set; }
@@ -81,17 +141,6 @@
         public string Comment { get; set; }
         public DateTime CreatedAt { get; set; }
         public string UserName { get; set; }
-    }
-
-    public class CategoryDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public string Slug { get; set; }
-        public int ProductCount { get; set; }
-        public string ImageUrl { get; set; }
-        public int DisplayOrder { get; set; }
     }
 
     public class BrandDto

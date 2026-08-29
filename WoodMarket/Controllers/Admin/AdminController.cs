@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 using WoodMarket.Dto;
 using WoodMarket.Models;
+using WoodMarket.Services;
 
 namespace WoodMarket.Controllers.Admin
 {
@@ -13,12 +15,14 @@ namespace WoodMarket.Controllers.Admin
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IFileService _fileService;
         private readonly ILogger<AdminController> _logger;
         private readonly IMapper _mapper;
 
-        public AdminController(AppDbContext context, ILogger<AdminController> logger, IMapper mapper)
+        public AdminController(AppDbContext context, ILogger<AdminController> logger, IFileService fileService, IMapper mapper)
         {
             _context = context;
+            _fileService = fileService;
             _logger = logger;
             _mapper = mapper;
         }
@@ -101,34 +105,201 @@ namespace WoodMarket.Controllers.Admin
         }
 
         [HttpPost("products")]
-        public async Task<IActionResult> CreateProduct([FromBody] Product product)
+        [RequestSizeLimit(10 * 1024 * 1024)] // 10MB
+        public async Task<ActionResult<ProductDto>> CreateProduct([FromForm] CreateProductDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            try
+            {
+                // 1. Валидация
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-            product.CreatedAt = DateTime.UtcNow;
-            product.Slug = GenerateSlug(product.Name);
+                // 2. Проверка уникальности SKU
+                if (!string.IsNullOrEmpty(dto.Sku))
+                {
+                    var existing = await _context.Products
+                        .FirstOrDefaultAsync(p => p.Sku == dto.Sku);
+                    if (existing != null)
+                        return BadRequest(new { message = "Товар с таким SKU уже существует" });
+                }
 
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+                    var categoryExists = await _context.Categories
+                        .AnyAsync(c => c.Id == dto.CategoryId);
+                    if (!categoryExists)
+                        return BadRequest(new { message = "Указанная категория не существует" });
 
-            return Ok(new { message = "Товар создан", productId = product.Id });
+                // 4. Создаём товар через AutoMapper
+                var product = _mapper.Map<Product>(dto);
+
+                // 5. Устанавливаем защищённые поля
+                product.CreatedAt = DateTime.UtcNow;
+                product.UpdatedAt = DateTime.UtcNow;
+                product.Slug = GenerateSlug(dto.Name);
+                product.IsInStock = dto.StockQuantity > 0;
+                product.IsOnSale = dto.OldPrice.HasValue;
+
+
+                // 7. Обрабатываем изображение, если оно есть
+                if (dto.ImageFile != null && dto.ImageFile.Length > 0)
+                {
+                    try
+                    {
+                        var imageUrl = await _fileService.SaveImageAsync(dto.ImageFile, product.Id);
+                        product.MainImageUrl = imageUrl;
+                        await _context.SaveChangesAsync();
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        // Если изображение не прошло валидацию, возвращаем ошибку
+                        // Но товар уже создан — это плохо. Лучше удалить товар.
+                        _context.Products.Remove(product);
+                        await _context.SaveChangesAsync();
+                        return BadRequest(new { message = ex.Message });
+                    }
+                }
+
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
+
+                // 9. Возвращаем результат
+                var response = _mapper.Map<ProductDto>(product);
+                return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании товара");
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
         }
 
         [HttpPut("products/{id}")]
-        public async Task<IActionResult> UpdateProduct(int id, [FromBody] AdminProductUpdateDto dto)
+        [RequestSizeLimit(10 * 1024 * 1024)] // 10MB
+        public async Task<IActionResult> UpdateProduct(
+            [FromForm] ProductUpdateWithImageDto dto) // ✅ [FromForm] для файлов
         {
-            if (id != dto.Id)
-                return BadRequest(new { message = "ID не совпадают" });
+            try
+            {
 
-            var existing = await _context.Products.FindAsync(id);
-            if (existing == null)
-                return NotFound(new { message = "Товар не найден" });
+                // 2. Находим товар
+                var existing = await _context.Products.FindAsync(dto.Id);
+                if (existing == null)
+                    return NotFound(new { message = "Товар не найден" });
 
-            _mapper.Map(dto, existing);
-            await _context.SaveChangesAsync();
+                // 3. Обновляем основные поля
+                _mapper.Map(dto, existing);
 
-            return Ok(new { message = "Товар обновлён" });
+                // 4. Обработка изображения
+                if (dto.RemoveImage)
+                {
+                    // Удаляем изображение
+                    if (!string.IsNullOrEmpty(existing.MainImageUrl))
+                    {
+                        _fileService.DeleteImage(existing.MainImageUrl);
+                        existing.MainImageUrl = null;
+                    }
+                }
+                else if (dto.ImageFile != null && dto.ImageFile.Length > 0)
+                {
+                    // Удаляем старое изображение, если есть
+                    if (!string.IsNullOrEmpty(existing.MainImageUrl))
+                    {
+                        _fileService.DeleteImage(existing.MainImageUrl);
+                    }
+
+                    // Сохраняем новое изображение
+                    var imageUrl = await _fileService.SaveImageAsync(dto.ImageFile, existing.Id);
+                    existing.MainImageUrl = imageUrl;
+                }
+
+                // 5. Сохраняем изменения
+                existing.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                // 6. Возвращаем результат
+                var result = _mapper.Map<ProductDto>(existing);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении товара {ProductId}", dto.Id);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+
+        [HttpPost("products/{id}/image")]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        [Produces("application/json")]
+        public async Task<IActionResult> UploadProductImage(
+    [FromForm] ProductImageUploadDto dto) // ✅ Используем DTO
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(dto.ProductId);
+                if (product == null)
+                    return NotFound(new { message = "Товар не найден" });
+
+                var image = dto.Image;
+                if (image == null || image.Length == 0)
+                    return BadRequest(new { message = "Файл не выбран" });
+
+                if (!string.IsNullOrEmpty(product.MainImageUrl))
+                {
+                    _fileService.DeleteImage(product.MainImageUrl);
+                }
+
+                var imageUrl = await _fileService.SaveImageAsync(image, product.Id);
+                product.MainImageUrl = imageUrl;
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Изображение загружено",
+                    imageUrl = imageUrl
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при загрузке изображения для товара {ProductId}", dto.ProductId);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+        [HttpDelete("products/{id}/image")]
+        public async Task<IActionResult> DeleteProductImage(int id)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                    return NotFound(new { message = "Товар не найден" });
+
+                if (string.IsNullOrEmpty(product.MainImageUrl))
+                    return BadRequest(new { message = "У товара нет изображения" });
+
+                // Удаляем файл
+                _fileService.DeleteImage(product.MainImageUrl);
+
+                // Очищаем поле в БД
+                product.MainImageUrl = null;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Изображение удалено" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении изображения товара {ProductId}", id);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
         }
 
         [HttpDelete("products/{id}")]
@@ -138,8 +309,14 @@ namespace WoodMarket.Controllers.Admin
             if (product == null)
                 return NotFound(new { message = "Товар не найден" });
 
-            // Мягкое удаление (пометка как неактивный)
-            product.IsActive = false;
+            if (!string.IsNullOrEmpty(product.MainImageUrl))
+            {
+                _fileService.DeleteImage(product.MainImageUrl);
+                _logger.LogInformation("Удалено изображение: {ImageUrl}", product.MainImageUrl);
+            }
+
+
+            _context.Products.Remove(product);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Товар удалён" });
@@ -255,45 +432,148 @@ namespace WoodMarket.Controllers.Admin
         }
 
         [HttpPost("categories")]
-        public async Task<IActionResult> CreateCategory([FromBody] Category category)
+        public async Task<ActionResult<CategoryDto>> CreateCategory([FromBody] CreateCategoryDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-            category.Slug = GenerateSlug(category.Name);
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
+                // Проверяем, нет ли категории с таким именем
+                var existing = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.Name == dto.Name);
+                if (existing != null)
+                    return BadRequest(new { message = "Категория с таким именем уже существует" });
 
-            return Ok(new { message = "Категория создана", categoryId = category.Id });
+                // Проверяем родительскую категорию
+                if (dto.ParentCategoryId.HasValue)
+                {
+                    var parentExists = await _context.Categories
+                        .AnyAsync(c => c.Id == dto.ParentCategoryId);
+                    if (!parentExists)
+                        return BadRequest(new { message = "Родительская категория не найдена" });
+                }
+
+                // Создаём категорию
+                var category = new Category
+                {
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    ParentCategoryId = dto.ParentCategoryId,
+                    DisplayOrder = dto.DisplayOrder,
+                    Slug = GenerateSlug(dto.Name)
+                };
+
+                _context.Categories.Add(category);
+                await _context.SaveChangesAsync();
+
+                // Возвращаем результат
+                var response = _mapper.Map<CategoryDto>(category);
+                return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании категории");
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
         }
 
         [HttpPut("categories/{id}")]
-        public async Task<IActionResult> UpdateCategory(int id, [FromBody] Category category)
+        public async Task<IActionResult> UpdateCategory([FromBody] UpdateCategoryDto dto)
         {
-            if (id != category.Id)
-                return BadRequest();
+            try
+            {
 
-            var existing = await _context.Categories.FindAsync(id);
-            if (existing == null)
-                return NotFound();
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-            _context.Entry(existing).CurrentValues.SetValues(category);
-            await _context.SaveChangesAsync();
+                var existing = await _context.Categories.FindAsync(dto.Id);
+                if (existing == null)
+                    return NotFound(new { message = "Категория не найдена" });
 
-            return Ok(new { message = "Категория обновлена" });
+                // Проверяем, не занято ли имя другой категорией
+                var nameExists = await _context.Categories
+                    .AnyAsync(c => c.Name == dto.Name && c.Id != dto.Id);
+                if (nameExists)
+                    return BadRequest(new { message = "Категория с таким именем уже существует" });
+
+                // Обновляем
+                existing.Name = dto.Name;
+                existing.Description = dto.Description;
+                existing.ParentCategoryId = dto.ParentCategoryId;
+                existing.DisplayOrder = dto.DisplayOrder;
+                existing.Slug = GenerateSlug(dto.Name);
+
+                await _context.SaveChangesAsync();
+
+                var response = _mapper.Map<CategoryDto>(existing);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении категории {CategoryId}", dto.Id);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
         }
 
         [HttpDelete("categories/{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            try
+            {
+                var category = await _context.Categories
+                    .Include(c => c.Products)
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
+                if (category == null)
+                    return NotFound(new { message = "Категория не найдена" });
+
+                // Проверяем, есть ли товары в этой категории
+                if (category.Products != null && category.Products.Any(p => p.IsActive))
+                {
+                    return BadRequest(new
+                    {
+                        message = "Нельзя удалить категорию, в которой есть активные товары. Сначала переместите или удалите товары."
+                    });
+                }
+
+                // Проверяем, есть ли дочерние категории
+                var hasChildren = await _context.Categories
+                    .AnyAsync(c => c.ParentCategoryId == id);
+                if (hasChildren)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Нельзя удалить категорию, у которой есть дочерние категории. Сначала удалите или переместите их."
+                    });
+                }
+
+                _context.Categories.Remove(category);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Категория удалена" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении категории {CategoryId}", id);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+        [HttpGet("categories/{id}")]
+        public async Task<ActionResult<CategoryDto>> GetCategory(int id)
+        {
+            var category = await _context.Categories
+                .Include(c => c.Products)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
             if (category == null)
                 return NotFound();
 
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
+            var dto = _mapper.Map<CategoryDto>(category);
+            dto.ProductCount = category.Products?.Count(p => p.IsActive) ?? 0;
 
-            return Ok(new { message = "Категория удалена" });
+            return Ok(dto);
         }
 
         // ========================================

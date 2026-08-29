@@ -41,6 +41,39 @@ namespace WoodMarket.Dto
                     opt => opt.MapFrom(src => DateTime.UtcNow));
 
 
+            // Маппинг ProductUpdateWithImageDto -> Product
+            CreateMap<ProductUpdateWithImageDto, Product>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore()) // ID не обновляем
+            .ForMember(dest => dest.MainImageUrl, opt => opt.Ignore()) // Обрабатываем отдельно
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Дата создания не меняется
+            .ForMember(dest => dest.IsInStock,
+                opt => opt.MapFrom(src => src.StockQuantity > 0))
+            .ForMember(dest => dest.IsOnSale,
+                opt => opt.MapFrom(src => src.OldPrice.HasValue))
+            .ForMember(dest => dest.UpdatedAt,
+                opt => opt.MapFrom(src => DateTime.UtcNow));
+
+
+            CreateMap<CreateProductDto, Product>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.IsInStock,
+                opt => opt.MapFrom(src => src.StockQuantity > 0))
+            .ForMember(dest => dest.IsOnSale,
+                opt => opt.MapFrom(src => src.OldPrice.HasValue))
+            .ForMember(dest => dest.AverageRating, opt => opt.Ignore())
+            .ForMember(dest => dest.ReviewCount, opt => opt.Ignore())
+            .ForMember(dest => dest.Slug, opt => opt.Ignore()) // Генерируем отдельно
+            .ForMember(dest => dest.Images, opt => opt.Ignore())
+            .ForMember(dest => dest.Variants, opt => opt.Ignore())
+            .ForMember(dest => dest.Reviews, opt => opt.Ignore())
+            .ForMember(dest => dest.OrderItems, opt => opt.Ignore())
+            .ForMember(dest => dest.WishlistItems, opt => opt.Ignore())
+            .ForMember(dest => dest.ProductTags, opt => opt.Ignore())
+            .ForMember(dest => dest.Specifications, opt => opt.Ignore())
+            .ForMember(dest => dest.CartItems, opt => opt.Ignore());
+
             // ========================================
             // Product -> ProductFullDto (детальный)
             // ========================================
