@@ -26,7 +26,7 @@ namespace WoodMarket
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
-
+            
             builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
             {
                 // Настройки пароля
@@ -51,6 +51,18 @@ namespace WoodMarket
 
 
             builder.Services.AddSingleton<IFileService, FileService>();
+
+            builder.Services.Configure<CdekOptions>(options =>
+            {
+                options.ClientId = "wqGwiQx0gg8mLtiEKsUinjVSICCjtTEP";
+                options.ClientSecret = "RmAmgvSgSl1yirlz9QupbzOJVqhCxcP5";
+                options.BaseUrl = "https://api.edu.cdek.ru/v2"; // Тестовый URL
+                options.SenderCityId = 44; // Москва
+                options.IsTest = true;
+            });
+            builder.Services.AddScoped<CdekDeliveryService>();
+
+            builder.Services.AddHttpClient();
 
             // Настройка размера загружаемых файлов
             builder.Services.Configure<FormOptions>(options =>
@@ -149,6 +161,8 @@ namespace WoodMarket
                     }
                 });
             });
+
+
 
             var app = builder.Build();
 

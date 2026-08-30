@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\" />
+    <Folder Include="wwwroot\images\blog\" />
+    <Folder Include="wwwroot\images\brands\" />
     <Folder Include="wwwroot\images\products\" />
   </ItemGroup>
 
