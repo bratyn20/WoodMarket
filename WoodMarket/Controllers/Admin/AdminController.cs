@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
 using WoodMarket.Dto;
 using WoodMarket.Models;
 using WoodMarket.Services;
@@ -577,6 +578,498 @@ namespace WoodMarket.Controllers.Admin
         }
 
         // ========================================
+        // 📝 ПОЛУЧИТЬ ВСЕ ПОСТЫ
+        // ========================================
+        [HttpGet("BlogPostsList")]
+        public async Task<ActionResult<IEnumerable<BlogPostDto>>> GetPosts(
+            [FromQuery] string? category = null,
+            [FromQuery] bool? isPublished = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var query = _context.BlogPosts
+                .Include(b => b.Author)
+                .Include(b => b.BlogTags)
+                    .ThenInclude(bt => bt.Tag)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(category))
+                query = query.Where(b => b.Category == category);
+
+            if (isPublished.HasValue)
+                query = query.Where(b => b.IsPublished == isPublished.Value);
+
+            var total = await query.CountAsync();
+
+            var posts = await query
+                .OrderByDescending(b => b.PublishedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var dtos = _mapper.Map<List<BlogPostDto>>(posts);
+
+            return Ok(new
+            {
+                posts = dtos,
+                total,
+                page,
+                pageSize,
+                totalPages = (int)Math.Ceiling((double)total / pageSize)
+            });
+        }
+
+        // ========================================
+        // 📝 ПОЛУЧИТЬ ПОСТ ПО ID
+        // ========================================
+        [HttpGet("GetBlogPost/{id}")]
+        public async Task<ActionResult<BlogPostDto>> GetPost(int id)
+        {
+            var post = await _context.BlogPosts
+                .Include(b => b.Author)
+                .Include(b => b.BlogTags)
+                    .ThenInclude(bt => bt.Tag)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (post == null)
+                return NotFound(new { message = "Пост не найден" });
+
+            return Ok(_mapper.Map<BlogPostDto>(post));
+        }
+
+        // ========================================
+        // ➕ СОЗДАТЬ ПОСТ
+        // ========================================
+        [HttpPost("CreateBlogPost")]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<BlogPostDto>> CreatePost([FromForm] CreateBlogPostDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+                var userId = 6;
+
+                // Проверяем категорию
+                var validCategories = new[] { "Советы", "Истории", "Новости", "Уход за деревом" };
+                if (!validCategories.Contains(dto.Category))
+                {
+                    return BadRequest(new
+                    {
+                        message = $"Недопустимая категория. Допустимые: {string.Join(", ", validCategories)}"
+                    });
+                }
+
+                var post = new BlogPost
+                {
+                    Title = dto.Title,
+                    ShortDescription = dto.ShortDescription,
+                    Content = dto.Content,
+                    Category = dto.Category,
+                    Slug = GenerateSlug(dto.Title),
+                    ReadTimeMinutes = dto.ReadTimeMinutes,
+                    IsPublished = dto.IsPublished,
+                    AuthorId = userId,
+                    PublishedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                // Обрабатываем изображение
+                if (dto.FeaturedImage != null && dto.FeaturedImage.Length > 0)
+                {
+                    var imageUrl = await _fileService.SaveImageAsync(dto.FeaturedImage, 0, "blog");
+                    post.FeaturedImageUrl = imageUrl;
+                }
+
+                // Добавляем теги
+                if (dto.Tags != null && dto.Tags.Any())
+                {
+                    post.BlogTags = new List<BlogTag>();
+                    foreach (var tagName in dto.Tags.Distinct())
+                    {
+                        var tag = await _context.Tags
+                            .FirstOrDefaultAsync(t => t.Name == tagName);
+
+                        if (tag == null)
+                        {
+                            tag = new Tag
+                            {
+                                Name = tagName,
+                                Slug = GenerateSlug(tagName)
+                            };
+                            _context.Tags.Add(tag);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        post.BlogTags.Add(new BlogTag { Tag = tag });
+                    }
+                }
+
+                _context.BlogPosts.Add(post);
+                await _context.SaveChangesAsync();
+
+                // Загружаем связи для ответа
+                await _context.Entry(post)
+                    .Reference(p => p.Author).LoadAsync();
+                await _context.Entry(post)
+                    .Collection(p => p.BlogTags)
+                    .Query()
+                    .Include(bt => bt.Tag)
+                    .LoadAsync();
+
+                var response = _mapper.Map<BlogPostDto>(post);
+                return CreatedAtAction(nameof(GetPost), new { id = post.Id }, response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании поста");
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+        // ========================================
+        // ✏️ ОБНОВИТЬ ПОСТ
+        // ========================================
+        [HttpPut("UpdateBlogPost/{id}")]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdatePost([FromForm] UpdateBlogPostDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var post = await _context.BlogPosts
+                    .Include(b => b.BlogTags)
+                    .FirstOrDefaultAsync(b => b.Id == dto.Id);
+
+                if (post == null)
+                    return NotFound(new { message = "Пост не найден" });
+
+                // Обновляем основные поля
+                post.Title = dto.Title;
+                post.ShortDescription = dto.ShortDescription;
+                post.Content = dto.Content;
+                post.Category = dto.Category;
+                post.ReadTimeMinutes = dto.ReadTimeMinutes;
+                post.IsPublished = dto.IsPublished;
+                post.Slug = GenerateSlug(dto.Title);
+                post.UpdatedAt = DateTime.UtcNow;
+
+                // Обрабатываем изображение
+                if (dto.RemoveFeaturedImage)
+                {
+                    if (!string.IsNullOrEmpty(post.FeaturedImageUrl))
+                    {
+                        _fileService.DeleteImage(post.FeaturedImageUrl);
+                        post.FeaturedImageUrl = null;
+                    }
+                }
+                else if (dto.FeaturedImage != null && dto.FeaturedImage.Length > 0)
+                {
+                    if (!string.IsNullOrEmpty(post.FeaturedImageUrl))
+                    {
+                        _fileService.DeleteImage(post.FeaturedImageUrl);
+                    }
+                    var imageUrl = await _fileService.SaveImageAsync(dto.FeaturedImage, 0, "blog");
+                    post.FeaturedImageUrl = imageUrl;
+                }
+
+                // Обновляем теги
+                post.BlogTags?.Clear();
+                if (dto.Tags != null && dto.Tags.Any())
+                {
+                    post.BlogTags = new List<BlogTag>();
+                    foreach (var tagName in dto.Tags.Distinct())
+                    {
+                        var tag = await _context.Tags
+                            .FirstOrDefaultAsync(t => t.Name == tagName);
+
+                        if (tag == null)
+                        {
+                            tag = new Tag
+                            {
+                                Name = tagName,
+                                Slug = GenerateSlug(tagName)
+                            };
+                            _context.Tags.Add(tag);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        post.BlogTags.Add(new BlogTag { Tag = tag });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Загружаем связи для ответа
+                await _context.Entry(post)
+                    .Reference(p => p.Author).LoadAsync();
+                await _context.Entry(post)
+                    .Collection(p => p.BlogTags)
+                    .Query()
+                    .Include(bt => bt.Tag)
+                    .LoadAsync();
+
+                var response = _mapper.Map<BlogPostDto>(post);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении поста {PostId}", dto.Id);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+        // ========================================
+        // 🗑️ УДАЛИТЬ ПОСТ
+        // ========================================
+        [HttpDelete("DeleteBlogPost/{id}")]
+        public async Task<IActionResult> DeletePost(int id)
+        {
+            try
+            {
+                var post = await _context.BlogPosts
+                    .Include(b => b.BlogTags)
+                    .FirstOrDefaultAsync(b => b.Id == id);
+
+                if (post == null)
+                    return NotFound(new { message = "Пост не найден" });
+
+                // Удаляем изображение
+                if (!string.IsNullOrEmpty(post.FeaturedImageUrl))
+                {
+                    _fileService.DeleteImage(post.FeaturedImageUrl);
+                }
+
+                _context.BlogPosts.Remove(post);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Пост удалён" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении поста {PostId}", id);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+        // ========================================
+        // 📂 ПОЛУЧИТЬ КАТЕГОРИИ БЛОГА
+        // ========================================
+        // ✅ Для категорий блога
+        [HttpGet("blog-categories")]
+        public IActionResult GetBlogCategories()
+        {
+            var categories = new[]
+            {
+            "Советы",
+            "Истории",
+            "Новости",
+            "Уход за деревом"
+        };
+            return Ok(categories);
+        }
+
+        // ========================================
+        // 📋 ПОЛУЧИТЬ ВСЕ БРЕНДЫ
+        // ========================================
+        [HttpGet("brands")]
+        public async Task<ActionResult<IEnumerable<BrandDto>>> GetBrands(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var query = _context.Brands
+                .Include(b => b.Products)
+                .AsQueryable();
+
+
+            var total = await query.CountAsync();
+
+            var brands = await query
+                .OrderBy(b => b.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var dtos = _mapper.Map<List<BrandDto>>(brands);
+
+            return Ok(new
+            {
+                brands = dtos,
+                total,
+                page,
+                pageSize,
+                totalPages = (int)Math.Ceiling((double)total / pageSize)
+            });
+        }
+
+        // ========================================
+        // 📋 ПОЛУЧИТЬ БРЕНД ПО ID
+        // ========================================
+        [HttpGet("brand/{id}")]
+        public async Task<ActionResult<BrandDto>> GetBrand(int id)
+        {
+            var brand = await _context.Brands
+                .Include(b => b.Products)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (brand == null)
+                return NotFound(new { message = "Бренд не найден" });
+
+            return Ok(_mapper.Map<BrandDto>(brand));
+        }
+
+        // ========================================
+        // ➕ СОЗДАТЬ БРЕНД
+        // ========================================
+        [HttpPost("create-brand")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<BrandDto>> CreateBrand([FromForm] CreateBrandDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                // Проверка уникальности
+                var existing = await _context.Brands
+                    .FirstOrDefaultAsync(b => b.Name == dto.Name);
+                if (existing != null)
+                    return BadRequest(new { message = "Бренд с таким названием уже существует" });
+
+                var brand = _mapper.Map<Brand>(dto);
+                brand.Slug = GenerateSlug(dto.Name);
+
+                // Обрабатываем логотип
+                if (dto.Logo != null && dto.Logo.Length > 0)
+                {
+                    var imageUrl = await _fileService.SaveImageAsync(dto.Logo, 0, "brands");
+                    brand.LogoUrl = imageUrl;
+                }
+
+                _context.Brands.Add(brand);
+                await _context.SaveChangesAsync();
+
+                var response = _mapper.Map<BrandDto>(brand);
+                return CreatedAtAction(nameof(GetBrand), new { id = brand.Id }, response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании бренда");
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+        // ========================================
+        // ✏️ ОБНОВИТЬ БРЕНД
+        // ========================================
+        [HttpPut("update-brand")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateBrand([FromForm] UpdateBrandDto dto)
+        {
+            try
+            {
+
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var brand = await _context.Brands.FindAsync(dto.Id);
+                if (brand == null)
+                    return NotFound(new { message = "Бренд не найден" });
+
+                // Проверка уникальности
+                var existing = await _context.Brands
+                    .FirstOrDefaultAsync(b => b.Name == dto.Name && b.Id != dto.Id);
+                if (existing != null)
+                    return BadRequest(new { message = "Бренд с таким названием уже существует" });
+
+                // Обновляем основные поля
+                _mapper.Map(dto, brand);
+                brand.Slug = GenerateSlug(dto.Name);
+
+                // Обрабатываем логотип
+                if (dto.RemoveLogo)
+                {
+                    if (!string.IsNullOrEmpty(brand.LogoUrl))
+                    {
+                        _fileService.DeleteImage(brand.LogoUrl);
+                        brand.LogoUrl = null;
+                    }
+                }
+                else if (dto.Logo != null && dto.Logo.Length > 0)
+                {
+                    if (!string.IsNullOrEmpty(brand.LogoUrl))
+                    {
+                        _fileService.DeleteImage(brand.LogoUrl);
+                    }
+                    var imageUrl = await _fileService.SaveImageAsync(dto.Logo, 0, "brands");
+                    brand.LogoUrl = imageUrl;
+                }
+
+                await _context.SaveChangesAsync();
+
+                var response = _mapper.Map<BrandDto>(brand);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении бренда {BrandId}", dto.Id);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+        // ========================================
+        // 🗑️ УДАЛИТЬ БРЕНД
+        // ========================================
+        [HttpDelete("delete-brand/{id}")]
+        public async Task<IActionResult> DeleteBrand(int id)
+        {
+            try
+            {
+                var brand = await _context.Brands
+                    .Include(b => b.Products)
+                    .FirstOrDefaultAsync(b => b.Id == id);
+
+                if (brand == null)
+                    return NotFound(new { message = "Бренд не найден" });
+
+                // Проверяем, есть ли товары у бренда
+                if (brand.Products != null && brand.Products.Any(p => p.IsActive))
+                {
+                    return BadRequest(new
+                    {
+                        message = "Нельзя удалить бренд, у которого есть активные товары. Сначала переместите или удалите товары."
+                    });
+                }
+
+                // Удаляем логотип
+                if (!string.IsNullOrEmpty(brand.LogoUrl))
+                {
+                    _fileService.DeleteImage(brand.LogoUrl);
+                }
+
+                _context.Brands.Remove(brand);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Бренд удалён" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении бренда {BrandId}", id);
+                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+            }
+        }
+
+
+        // ========================================
         // 🔧 HELPER МЕТОДЫ
         // ========================================
         private string GenerateSlug(string name)
@@ -621,6 +1114,7 @@ namespace WoodMarket.Controllers.Admin
                 .Replace(".", "");
         }
     }
+
 
     public class UpdateStatusRequest
     {

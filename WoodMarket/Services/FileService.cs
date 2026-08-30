@@ -11,41 +11,34 @@
             _logger = logger;
         }
 
-        public async Task<string> SaveImageAsync(IFormFile file, int productId)
+        public async Task<string> SaveImageAsync(IFormFile file, int entityId, string folder = "products")
         {
             try
             {
-                // 1. Проверяем файл
                 if (file == null || file.Length == 0)
                     throw new ArgumentException("Файл не выбран");
 
-                // 2. Проверяем расширение
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 if (!allowedExtensions.Contains(extension))
                     throw new ArgumentException($"Недопустимый формат файла. Разрешены: {string.Join(", ", allowedExtensions)}");
 
-                // 3. Проверяем размер (макс 5MB)
                 if (file.Length > 5 * 1024 * 1024)
                     throw new ArgumentException("Размер файла не должен превышать 5MB");
 
-                // 4. Генерируем уникальное имя
-                var fileName = $"{productId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
-                var uploadPath = Path.Combine(_env.WebRootPath, "images", "products");
+                var fileName = $"{entityId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
+                var uploadPath = Path.Combine(_env.WebRootPath, "images", folder);
 
-                // 5. Создаём папку, если её нет
                 if (!Directory.Exists(uploadPath))
                     Directory.CreateDirectory(uploadPath);
 
-                // 6. Сохраняем файл
                 var filePath = Path.Combine(uploadPath, fileName);
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
-                // 7. Возвращаем URL
-                return $"/images/products/{fileName}";
+                return $"/images/{folder}/{fileName}";
             }
             catch (Exception ex)
             {

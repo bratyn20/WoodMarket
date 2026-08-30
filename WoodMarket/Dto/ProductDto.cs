@@ -143,16 +143,6 @@ namespace WoodMarket.Dto
         public string UserName { get; set; }
     }
 
-    public class BrandDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public string Slug { get; set; }
-        public string LogoUrl { get; set; }
-        public int ProductCount { get; set; }
-    }
-
     public class MaterialDto
     {
         public int Id { get; set; }
@@ -196,22 +186,6 @@ namespace WoodMarket.Dto
         public string ImageUrl { get; set; }
     }
 
-    public class BlogPostDto
-    {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public string ShortDescription { get; set; }
-        public string Content { get; set; }
-        public string Slug { get; set; }
-        public string Category { get; set; }
-        public string FeaturedImageUrl { get; set; }
-        public int ReadTimeMinutes { get; set; }
-        public DateTime PublishedAt { get; set; }
-        public List<string> Tags { get; set; }
-        public string AuthorName { get; set; }
-
-        public List<BlogPostDto> RelatedPosts { get; set; }
-    }
 
     public class DiscountDto
     {

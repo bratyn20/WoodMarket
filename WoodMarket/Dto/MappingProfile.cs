@@ -156,6 +156,15 @@ namespace WoodMarket.Dto
                 .ForMember(dest => dest.ProductCount,
                     opt => opt.MapFrom(src => src.Products.Count(p => p.IsActive)));
 
+            CreateMap<CreateBrandDto, Brand>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Slug, opt => opt.Ignore())
+            .ForMember(dest => dest.LogoUrl, opt => opt.Ignore());
+
+            CreateMap<UpdateBrandDto, Brand>()
+                .ForMember(dest => dest.Slug, opt => opt.Ignore())
+                .ForMember(dest => dest.LogoUrl, opt => opt.Ignore());
+
             // ========================================
             // Material -> MaterialDto
             // ========================================
@@ -172,12 +181,28 @@ namespace WoodMarket.Dto
             // BlogPost -> BlogPostDto
             // ========================================
             CreateMap<BlogPost, BlogPostDto>()
-                .ForMember(dest => dest.Tags,
-                    opt => opt.MapFrom(src => src.BlogTags.Select(bt => bt.Tag.Name)))
-                .ForMember(dest => dest.AuthorName,
-                    opt => opt.MapFrom(src => src.Author != null
-                        ? $"{src.Author.FirstName} {src.Author.LastName}"
-                        : null));
+            .ForMember(dest => dest.Tags,
+                opt => opt.MapFrom(src => src.BlogTags != null
+                    ? src.BlogTags.Select(bt => bt.Tag.Name).ToList()
+                    : new List<string>()))
+            .ForMember(dest => dest.AuthorName,
+                opt => opt.MapFrom(src => src.Author != null
+                    ? $"{src.Author.FirstName} {src.Author.LastName}"
+                    : null));
+
+            CreateMap<CreateBlogPostDto, BlogPost>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Slug, opt => opt.Ignore())
+            .ForMember(dest => dest.PublishedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.Ignore())
+            .ForMember(dest => dest.BlogTags, opt => opt.Ignore());
+
+            CreateMap<UpdateBlogPostDto, BlogPost>()
+                .ForMember(dest => dest.Slug, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.FeaturedImageUrl, opt => opt.Ignore())
+                .ForMember(dest => dest.BlogTags, opt => opt.Ignore());
 
             // ========================================
             // ApplicationUser -> UserProfileDto
