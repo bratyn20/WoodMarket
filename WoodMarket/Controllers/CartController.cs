@@ -21,7 +21,11 @@ namespace WoodMarket.Controllers
             _mapper = mapper;
         }
 
-        [HttpGet]
+        /// <summary>
+        /// Получить корзину
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("GetCart")]
         [Authorize]
         public async Task<ActionResult<CartResponseDto>> GetCart()
         {
@@ -49,6 +53,11 @@ namespace WoodMarket.Controllers
             });
         }
 
+        /// <summary>
+        /// Добавление товара в корзину
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("add")]
         public async Task<IActionResult> AddToCart(AddToCartRequest request)
         {
@@ -91,6 +100,11 @@ namespace WoodMarket.Controllers
             return Ok(new { message = "Товар добавлен в корзину" });
         }
 
+        /// <summary>
+        /// Обновить количество
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPut("update")]
         public async Task<IActionResult> UpdateQuantity(UpdateCartRequest request)
         {
@@ -119,6 +133,11 @@ namespace WoodMarket.Controllers
             return Ok(new { message = "Корзина обновлена" });
         }
 
+        /// <summary>
+        /// Удаление товара из корзины
+        /// </summary>
+        /// <param name="cartItemId"></param>
+        /// <returns></returns>
         [HttpDelete("{cartItemId}")]
         public async Task<IActionResult> RemoveFromCart(int cartItemId)
         {
@@ -139,6 +158,10 @@ namespace WoodMarket.Controllers
             return Ok(new { message = "Товар удалён из корзины" });
         }
 
+        /// <summary>
+        /// Отчистить корзину
+        /// </summary>
+        /// <returns></returns>
         [HttpDelete("clear")]
         public async Task<IActionResult> ClearCart()
         {

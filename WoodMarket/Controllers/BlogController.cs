@@ -21,9 +21,13 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
-        // ========================================
-        // GET: api/blog - Получить все статьи
-        // ========================================
+        /// <summary>
+        /// GET: api/blog - Получить все статьи
+        /// </summary>
+        /// <param name="category"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<BlogListResponse>> GetPosts(
             [FromQuery] string category = null,
@@ -75,9 +79,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/blog/{slug} - Получить статью по slug
-        // ========================================
+        /// <summary>
+        /// GET: api/blog/{slug} - Получить статью по slug
+        /// </summary>
+        /// <param name="slug"></param>
+        /// <returns></returns>
         [HttpGet("{slug}")]
         public async Task<ActionResult<BlogPostDto>> GetPost(string slug)
         {
@@ -112,9 +118,10 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/blog/categories - Получить категории блога
-        // ========================================
+        /// <summary>
+        /// GET: api/blog/categories - Получить категории блога
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("categories")]
         public async Task<IActionResult> GetCategories()
         {

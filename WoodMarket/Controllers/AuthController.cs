@@ -31,9 +31,11 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
-        // ========================================
-        // 📝 РЕГИСТРАЦИЯ
-        // ========================================
+        /// <summary>
+        /// 📝 РЕГИСТРАЦИЯ
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
@@ -91,9 +93,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // 🔑 ВХОД
-        // ========================================
+        /// <summary>
+        /// 🔑 ВХОД
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
@@ -144,9 +148,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // 🔄 ОБНОВЛЕНИЕ ТОКЕНА (Refresh Token)
-        // ========================================
+        /// <summary>
+        /// 🔄 ОБНОВЛЕНИЕ ТОКЕНА (Refresh Token)
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
         {
@@ -163,9 +169,10 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // 🚪 ВЫХОД (для клиента)
-        // ========================================
+        /// <summary>
+        /// 🚪 ВЫХОД (для клиента)
+        /// </summary>
+        /// <returns></returns>
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
@@ -174,9 +181,11 @@ namespace WoodMarket.Controllers
             return Ok(new { message = "Выход выполнен" });
         }
 
-        // ========================================
-        // 🔧 ГЕНЕРАЦИЯ JWT ТОКЕНА
-        // ========================================
+        /// <summary>
+        /// 🔧 ГЕНЕРАЦИЯ JWT ТОКЕНА
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         private string GenerateJwtToken(User user)
         {
             // Получаем роли пользователя

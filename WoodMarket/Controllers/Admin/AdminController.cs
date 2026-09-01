@@ -28,9 +28,10 @@ namespace WoodMarket.Controllers.Admin
             _mapper = mapper;
         }
 
-        // ========================================
-        // 📊 СТАТИСТИКА
-        // ========================================
+        /// <summary>
+        /// 📊 СТАТИСТИКА
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("stats")]
         public async Task<IActionResult> GetStats()
         {
@@ -50,9 +51,12 @@ namespace WoodMarket.Controllers.Admin
             return Ok(stats);
         }
 
-        // ========================================
-        // 📦 УПРАВЛЕНИЕ ТОВАРАМИ
-        // ========================================
+        /// <summary>
+        /// 📦 УПРАВЛЕНИЕ ТОВАРАМИ
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
         [HttpGet("products")]
         public async Task<IActionResult> GetProducts([FromQuery] int page = 1, int pageSize = 20)
         {
@@ -84,6 +88,11 @@ namespace WoodMarket.Controllers.Admin
             return Ok(new { products, total, page, pageSize });
         }
 
+        /// <summary>
+        /// Получить товар подробно
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("products/{id}")]
         public async Task<ActionResult<AdminProductDto>> GetProduct(int id)
         {
@@ -105,6 +114,11 @@ namespace WoodMarket.Controllers.Admin
             return Ok(dto);
         }
 
+        /// <summary>
+        /// Создать товар
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPost("products")]
         [RequestSizeLimit(10 * 1024 * 1024)] // 10MB
         public async Task<ActionResult<ProductDto>> CreateProduct([FromForm] CreateProductDto dto)
@@ -173,6 +187,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
+        /// <summary>
+        /// Обновить товар
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPut("products/{id}")]
         [RequestSizeLimit(10 * 1024 * 1024)] // 10MB
         public async Task<IActionResult> UpdateProduct(
@@ -231,7 +250,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
-
+        /// <summary>
+        /// Обновить картинку продукта
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPost("products/{id}/image")]
         [RequestSizeLimit(10 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
@@ -275,6 +298,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
+        /// <summary>
+        /// Удалить картинку продукта
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpDelete("products/{id}/image")]
         public async Task<IActionResult> DeleteProductImage(int id)
         {
@@ -303,6 +331,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
+        /// <summary>
+        /// Удалит продукт
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpDelete("products/{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
@@ -323,9 +356,13 @@ namespace WoodMarket.Controllers.Admin
             return Ok(new { message = "Товар удалён" });
         }
 
-        // ========================================
-        // 📋 УПРАВЛЕНИЕ ЗАКАЗАМИ
-        // ========================================
+        /// <summary>
+        /// 📋 УПРАВЛЕНИЕ ЗАКАЗАМИ
+        /// </summary>
+        /// <param name="status"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
         [HttpGet("orders")]
         public async Task<IActionResult> GetOrders([FromQuery] string status = null, int page = 1, int pageSize = 20)
         {
@@ -362,6 +399,11 @@ namespace WoodMarket.Controllers.Admin
             return Ok(new { orders, total, page, pageSize });
         }
 
+        /// <summary>
+        /// Получить иноформацию заказ подробнее
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("orders/{id}")]
         public async Task<IActionResult> GetOrder(int id)
         {
@@ -377,6 +419,12 @@ namespace WoodMarket.Controllers.Admin
             return Ok(order);
         }
 
+        /// <summary>
+        /// Обновить статус заказа
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPut("orders/{id}/status")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusRequest request)
         {
@@ -391,9 +439,12 @@ namespace WoodMarket.Controllers.Admin
             return Ok(new { message = "Статус обновлён" });
         }
 
-        // ========================================
-        // 👥 УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
-        // ========================================
+        /// <summary>
+        /// 👥 УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers([FromQuery] int page = 1, int pageSize = 20)
         {
@@ -419,9 +470,10 @@ namespace WoodMarket.Controllers.Admin
             return Ok(new { users, total, page, pageSize });
         }
 
-        // ========================================
-        // 🗂️ УПРАВЛЕНИЕ КАТЕГОРИЯМИ
-        // ========================================
+        /// <summary>
+        /// 🗂️ УПРАВЛЕНИЕ КАТЕГОРИЯМИ ТОВАРА
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("categories")]
         public async Task<IActionResult> GetCategories()
         {
@@ -432,6 +484,11 @@ namespace WoodMarket.Controllers.Admin
             return Ok(categories);
         }
 
+        /// <summary>
+        /// Создать категорию товара
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPost("categories")]
         public async Task<ActionResult<CategoryDto>> CreateCategory([FromBody] CreateCategoryDto dto)
         {
@@ -479,6 +536,12 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
+
+        /// <summary>
+        /// Обновить категорию товара
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPut("categories/{id}")]
         public async Task<IActionResult> UpdateCategory([FromBody] UpdateCategoryDto dto)
         {
@@ -517,6 +580,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
+        /// <summary>
+        /// Удалить категорию товара
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpDelete("categories/{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
@@ -561,6 +629,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
+        /// <summary>
+        /// Получить ктегорию по Id подробно
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("categories/{id}")]
         public async Task<ActionResult<CategoryDto>> GetCategory(int id)
         {
@@ -577,9 +650,14 @@ namespace WoodMarket.Controllers.Admin
             return Ok(dto);
         }
 
-        // ========================================
-        // 📝 ПОЛУЧИТЬ ВСЕ ПОСТЫ
-        // ========================================
+        /// <summary>
+        /// 📝 ПОЛУЧИТЬ ВСЕ ПОСТЫ
+        /// </summary>
+        /// <param name="category"></param>
+        /// <param name="isPublished"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
         [HttpGet("BlogPostsList")]
         public async Task<ActionResult<IEnumerable<BlogPostDto>>> GetPosts(
             [FromQuery] string? category = null,
@@ -619,9 +697,11 @@ namespace WoodMarket.Controllers.Admin
             });
         }
 
-        // ========================================
-        // 📝 ПОЛУЧИТЬ ПОСТ ПО ID
-        // ========================================
+        /// <summary>
+        /// 📝 ПОЛУЧИТЬ ПОСТ ПО ID
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("GetBlogPost/{id}")]
         public async Task<ActionResult<BlogPostDto>> GetPost(int id)
         {
@@ -637,9 +717,11 @@ namespace WoodMarket.Controllers.Admin
             return Ok(_mapper.Map<BlogPostDto>(post));
         }
 
-        // ========================================
-        // ➕ СОЗДАТЬ ПОСТ
-        // ========================================
+        /// <summary>
+        /// ➕ СОЗДАТЬ ПОСТ
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPost("CreateBlogPost")]
         [RequestSizeLimit(10 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
@@ -731,9 +813,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
-        // ========================================
-        // ✏️ ОБНОВИТЬ ПОСТ
-        // ========================================
+        /// <summary>
+        /// ✏️ ОБНОВИТЬ ПОСТ
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPut("UpdateBlogPost/{id}")]
         [RequestSizeLimit(10 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
@@ -826,9 +910,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
-        // ========================================
-        // 🗑️ УДАЛИТЬ ПОСТ
-        // ========================================
+        /// <summary>
+        /// 🗑️ УДАЛИТЬ ПОСТ
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpDelete("DeleteBlogPost/{id}")]
         public async Task<IActionResult> DeletePost(int id)
         {
@@ -859,10 +945,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
-        // ========================================
-        // 📂 ПОЛУЧИТЬ КАТЕГОРИИ БЛОГА
-        // ========================================
-        // ✅ Для категорий блога
+        /// <summary>
+        /// 📂 ПОЛУЧИТЬ КАТЕГОРИИ БЛОГА
+        /// ✅ Для категорий блога
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("blog-categories")]
         public IActionResult GetBlogCategories()
         {
@@ -876,9 +963,12 @@ namespace WoodMarket.Controllers.Admin
             return Ok(categories);
         }
 
-        // ========================================
-        // 📋 ПОЛУЧИТЬ ВСЕ БРЕНДЫ
-        // ========================================
+        /// <summary>
+        /// 📋 ПОЛУЧИТЬ ВСЕ БРЕНДЫ
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
         [HttpGet("brands")]
         public async Task<ActionResult<IEnumerable<BrandDto>>> GetBrands(
             [FromQuery] int page = 1,
@@ -909,9 +999,11 @@ namespace WoodMarket.Controllers.Admin
             });
         }
 
-        // ========================================
-        // 📋 ПОЛУЧИТЬ БРЕНД ПО ID
-        // ========================================
+        /// <summary>
+        /// 📋 ПОЛУЧИТЬ БРЕНД ПО ID
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("brand/{id}")]
         public async Task<ActionResult<BrandDto>> GetBrand(int id)
         {
@@ -925,9 +1017,11 @@ namespace WoodMarket.Controllers.Admin
             return Ok(_mapper.Map<BrandDto>(brand));
         }
 
-        // ========================================
-        // ➕ СОЗДАТЬ БРЕНД
-        // ========================================
+        /// <summary>
+        /// ➕ СОЗДАТЬ БРЕНД
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPost("create-brand")]
         [RequestSizeLimit(5 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
@@ -967,9 +1061,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
-        // ========================================
-        // ✏️ ОБНОВИТЬ БРЕНД
-        // ========================================
+        /// <summary>
+        /// ✏️ ОБНОВИТЬ БРЕНД
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
         [HttpPut("update-brand")]
         [RequestSizeLimit(5 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
@@ -1026,9 +1122,11 @@ namespace WoodMarket.Controllers.Admin
             }
         }
 
-        // ========================================
-        // 🗑️ УДАЛИТЬ БРЕНД
-        // ========================================
+        /// <summary>
+        /// 🗑️ УДАЛИТЬ БРЕНД
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpDelete("delete-brand/{id}")]
         public async Task<IActionResult> DeleteBrand(int id)
         {

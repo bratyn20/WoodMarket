@@ -25,9 +25,10 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
-        // ========================================
-        // GET: api/wishlist - Получить избранное
-        // ========================================
+        /// <summary>
+        /// GET: api/wishlist - Получить избранное
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<WishlistItemDto>>> GetWishlist()
         {
@@ -53,9 +54,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // POST: api/wishlist - Добавить в избранное
-        // ========================================
+        /// <summary>
+        /// POST: api/wishlist - Добавить в избранное
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<IActionResult> AddToWishlist([FromBody] AddToWishlistRequest request)
         {
@@ -96,9 +99,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // DELETE: api/wishlist/{productId} - Удалить из избранного
-        // ========================================
+        /// <summary>
+        /// DELETE: api/wishlist/{productId} - Удалить из избранного
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
         [HttpDelete("{productId}")]
         public async Task<IActionResult> RemoveFromWishlist(int productId)
         {
@@ -124,9 +129,10 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // DELETE: api/wishlist - Очистить избранное
-        // ========================================
+        /// <summary>
+        /// DELETE: api/wishlist/{productId} - Удалить из избранного
+        /// </summary>
+        /// <returns></returns>
         [HttpDelete]
         public async Task<IActionResult> ClearWishlist()
         {
@@ -150,9 +156,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/wishlist/check/{productId} - Проверить в избранном
-        // ========================================
+        /// <summary>
+        /// GET: api/wishlist/check/{productId} - Проверить в избранном
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
         [HttpGet("check/{productId}")]
         public async Task<IActionResult> CheckInWishlist(int productId)
         {

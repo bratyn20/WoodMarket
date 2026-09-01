@@ -23,6 +23,10 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Получить главную страницу
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<HomeResponseDto>> GetHomeData()
         {

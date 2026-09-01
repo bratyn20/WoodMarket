@@ -21,9 +21,10 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
-        // ========================================
-        // GET: api/brand - Получить все бренды
-        // ========================================
+        /// <summary>
+        /// GET: api/brand - Получить все бренды
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BrandDto>>> GetBrands()
         {
@@ -42,9 +43,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/brand/{slug} - Получить бренд по slug
-        // ========================================
+        /// <summary>
+        /// GET: api/brand/{slug} - Получить бренд по slug
+        /// </summary>
+        /// <param name="slug"></param>
+        /// <returns></returns>
         [HttpGet("{slug}")]
         public async Task<ActionResult<BrandDto>> GetBrand(string slug)
         {

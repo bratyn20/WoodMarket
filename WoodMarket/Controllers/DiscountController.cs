@@ -22,9 +22,10 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
-        // ========================================
-        // GET: api/discount - Получить все активные акции
-        // ========================================
+        /// <summary>
+        /// api/discount - Получить все активные акции
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DiscountDto>>> GetActiveDiscounts()
         {
@@ -48,9 +49,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // POST: api/discount/validate - Проверить промокод
-        // ========================================
+        /// <summary>
+        /// POST: api/discount/validate - Проверить промокод
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("validate")]
         public async Task<ActionResult<DiscountValidationResponse>> ValidatePromoCode([FromBody] ValidatePromoCodeRequest request)
         {

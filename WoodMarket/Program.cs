@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using WoodMarket.Dto;
 using WoodMarket.Models;
@@ -134,6 +135,10 @@ namespace WoodMarket
                     Version = "v1",
                     Description = "API для интернет-магазина WoodMarket"
                 });
+
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                c.IncludeXmlComments(xmlPath);
 
                 // Настройка JWT авторизации в Swagger
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

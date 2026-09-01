@@ -53,11 +53,14 @@ namespace WoodMarket.Services
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var cities = JsonSerializer.Deserialize<List<CdekCity>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
 
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    WriteIndented = false
+                };
+
+                var cities = JsonSerializer.Deserialize<List<CdekCity>>(json, options);
                 return cities ?? new List<CdekCity>();
             }
             catch (Exception ex)

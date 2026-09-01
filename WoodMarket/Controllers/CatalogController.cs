@@ -19,6 +19,10 @@ namespace WoodMarket.Controllers
             _mapper = mapper;
         }
 
+        /// <summary>
+        /// Получить категории товара
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("categories")]
         public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
         {
@@ -31,6 +35,11 @@ namespace WoodMarket.Controllers
             return Ok(_mapper.Map<List<CategoryDto>>(categories));
         }
 
+        /// <summary>
+        /// Получение продуктов для каталога
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
         [HttpGet("products")]
         public async Task<ActionResult<CatalogResponseDto>> GetProducts(
             [FromQuery] CatalogFilter filter)
@@ -116,7 +125,7 @@ namespace WoodMarket.Controllers
         public decimal? MaxPrice { get; set; }
         public bool OnlyInStock { get; set; }
         public string SortBy { get; set; } = "popularity";
-        public string SearchTerm { get; set; }
+        public string? SearchTerm { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }

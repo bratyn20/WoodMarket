@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 using WoodMarket.Services;
 
 namespace WoodMarket.Controllers
@@ -23,14 +24,14 @@ namespace WoodMarket.Controllers
         [HttpPost("calculate")]
         public async Task<IActionResult> CalculateDelivery()
         {
-            var result = _cdekDeliveryService.SearchCitiesAsync("Томск");
+            var result = await _cdekDeliveryService.SearchCitiesAsync("Mos");
             return Ok(result);
         }
 
         [HttpPost("calculate2")]
-        public ActionResult CalculateDelivery2()
+        public async Task<ActionResult> CalculateDelivery2()
         {
-            var result = _cdekDeliveryService.CalculateDeliveryAsync(70, 10, 10, 10, 10);
+            var result = await _cdekDeliveryService.CalculateDeliveryAsync(70, 10, 10, 10, 10);
             return Ok(result);
         }
     }

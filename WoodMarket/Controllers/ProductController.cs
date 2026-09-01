@@ -20,6 +20,11 @@ namespace WoodMarket.Controllers
             _mapper = mapper;
         }
 
+        /// <summary>
+        /// Карточка товара
+        /// </summary>
+        /// <param name="slug"></param>
+        /// <returns></returns>
         [HttpGet("{slug}")]
         public async Task<ActionResult<ProductDetailsResponseDto>> GetProduct(string slug)
         {
@@ -65,6 +70,12 @@ namespace WoodMarket.Controllers
             });
         }
 
+        /// <summary>
+        /// Добавить отзыв
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("{productId}/reviews")]
         public async Task<IActionResult> AddReview(int productId, [FromBody] AddReviewRequest request)
         {

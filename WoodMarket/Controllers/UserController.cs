@@ -32,9 +32,10 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
-        // ========================================
-        // GET: api/user/profile - Получить профиль пользователя
-        // ========================================
+        /// <summary>
+        ///  GET: api/user/profile - Получить профиль пользователя
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("profile")]
         public async Task<ActionResult<UserProfileDto>> GetProfile()
         {
@@ -55,9 +56,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // PUT: api/user/profile - Обновить профиль
-        // ========================================
+        /// <summary>
+        /// PUT: api/user/profile - Обновить профиль
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
@@ -93,9 +96,10 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/user/stats - Получить статистику пользователя
-        // ========================================
+        /// <summary>
+        /// GET: api/user/stats - Получить статистику пользователя
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("stats")]
         public async Task<ActionResult<UserStatsDto>> GetUserStats()
         {
@@ -131,9 +135,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // POST: api/user/change-password - Сменить пароль
-        // ========================================
+        /// <summary>
+        /// POST: api/user/change-password - Сменить пароль
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {

@@ -24,9 +24,10 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
-        // ========================================
-        // GET: api/customorder - Получить все заявки пользователя
-        // ========================================
+        /// <summary>
+        /// GET: api/customorder - Получить все заявки пользователя
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         [Authorize]
         public async Task<ActionResult<IEnumerable<CustomOrderDto>>> GetMyOrders()
@@ -49,9 +50,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/customorder/{id} - Получить заявку по ID
-        // ========================================
+        /// <summary>
+        /// GET: api/customorder/{id} - Получить заявку по ID
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("{id}")]
         [Authorize]
         public async Task<ActionResult<CustomOrderDto>> GetOrder(int id)
@@ -75,9 +78,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // POST: api/customorder - Создать заявку
-        // ========================================
+        /// <summary>
+        /// POST: api/customorder - Создать заявку
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<ActionResult<CustomOrderCreatedResponse>> CreateOrder([FromBody] CreateCustomOrderRequest request)
         {
@@ -118,9 +123,10 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/customorder/info - Информация о услуге
-        // ========================================
+        /// <summary>
+        /// GET: api/customorder/info - Информация о услуге
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("info")]
         public IActionResult GetServiceInfo()
         {

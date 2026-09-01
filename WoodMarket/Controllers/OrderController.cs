@@ -29,9 +29,10 @@ namespace WoodMarket.Controllers
             _logger = logger;
         }
 
-        // ========================================
-        // GET: api/order - Получить все заказы пользователя
-        // ========================================
+        /// <summary>
+        /// GET: api/order - Получить все заказы пользователя
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrderResponse>>> GetOrders()
         {
@@ -55,9 +56,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/order/{id} - Получить детали заказа
-        // ========================================
+        /// <summary>
+        /// GET: api/order/{id} - Получить детали заказа
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<OrderResponse>> GetOrder(int id)
         {
@@ -83,9 +86,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // POST: api/order - Создать новый заказ
-        // ========================================
+        /// <summary>
+        /// POST: api/order - Создать новый заказ
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<ActionResult<OrderCreatedResponse>> CreateOrder([FromBody] CreateOrderRequest request)
         {
@@ -176,9 +181,11 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // PUT: api/order/{id}/cancel - Отменить заказ
-        // ========================================
+        /// <summary>
+        /// PUT: api/order/{id}/cancel - Отменить заказ
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpPut("{id}/cancel")]
         public async Task<IActionResult> CancelOrder(int id)
         {
@@ -210,9 +217,10 @@ namespace WoodMarket.Controllers
             }
         }
 
-        // ========================================
-        // GET: api/order/statuses - Получить статусы заказов
-        // ========================================
+        /// <summary>
+        /// GET: api/order/statuses - Получить статусы заказов
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("statuses")]
         public IActionResult GetOrderStatuses()
         {
@@ -227,9 +235,10 @@ namespace WoodMarket.Controllers
             return Ok(statuses);
         }
 
-        // ========================================
-        // GET: api/order/payment-methods - Получить методы оплаты
-        // ========================================
+        /// <summary>
+        /// GET: api/order/payment-methods - Получить методы оплаты
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("payment-methods")]
         public IActionResult GetPaymentMethods()
         {
@@ -243,9 +252,10 @@ namespace WoodMarket.Controllers
             return Ok(methods);
         }
 
-        // ========================================
-        // GET: api/order/shipping-methods - Получить методы доставки
-        // ========================================
+        /// <summary>
+        /// GET: api/order/shipping-methods - Получить методы доставки
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("shipping-methods")]
         public IActionResult GetShippingMethods()
         {
