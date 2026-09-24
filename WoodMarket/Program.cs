@@ -14,6 +14,7 @@ using System.Text;
 using WoodMarket.Dto;
 using WoodMarket.Models;
 using WoodMarket.Services;
+using System.Reflection;
 
 namespace WoodMarket
 {
@@ -58,7 +59,7 @@ namespace WoodMarket
                 options.ClientId = "wqGwiQx0gg8mLtiEKsUinjVSICCjtTEP";
                 options.ClientSecret = "RmAmgvSgSl1yirlz9QupbzOJVqhCxcP5";
                 options.BaseUrl = "https://api.edu.cdek.ru/v2"; // Тестовый URL
-                options.SenderCityId = 44; // Москва
+                options.SenderCityId = 269; // Москва
                 options.IsTest = true;
             });
             builder.Services.AddScoped<CdekDeliveryService>();
@@ -171,8 +172,8 @@ namespace WoodMarket
 
             var app = builder.Build();
 
-            if (app.Environment.IsDevelopment())
-            {
+            //if (app.Environment.IsDevelopment())
+            //{
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
@@ -184,7 +185,7 @@ namespace WoodMarket
                     c.OAuthAppName("WoodMarket API");
                     c.OAuthUsePkce();
                 });
-            }
+            //}
 
             app.UseStaticFiles();
             app.UseRequestLocalization();

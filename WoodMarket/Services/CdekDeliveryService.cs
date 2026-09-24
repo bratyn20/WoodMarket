@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text;
 using WoodMarket.Models;
 using System.Text.Json.Serialization;
+using WoodMarket.Dto;
 
 namespace WoodMarket.Services
 {
@@ -40,7 +41,9 @@ namespace WoodMarket.Services
                 client.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var url = $"{_options.BaseUrl}/location/cities?q={Uri.EscapeDataString(query)}&country=RU&limit=20";
+                // ✅ ИСПОЛЬЗУЕМ /location/cities и правильные параметры
+                // Параметр "city" требует полного совпадения, но мы можем использовать его для точного поиска
+                var url = $"{_options.BaseUrl}/location/cities?city={Uri.EscapeDataString(query)}&country_code=RU";
 
                 var response = await client.GetAsync(url);
 
@@ -53,6 +56,7 @@ namespace WoodMarket.Services
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
+
 
                 var options = new JsonSerializerOptions
                 {
@@ -73,12 +77,7 @@ namespace WoodMarket.Services
         // ========================================
         // 2. РАСЧЕТ ДОСТАВКИ
         // ========================================
-        public async Task<DeliveryCalculationResult> CalculateDeliveryAsync(
-            int cityCode,
-            decimal totalWeight,
-            int length,
-            int width,
-            int height)
+        public async Task<DeliveryCalculationResult> CalculateDeliveryAsync(CalculateDeliveryRequest calculateDeliveryRequest)
         {
             try
             {
@@ -88,19 +87,30 @@ namespace WoodMarket.Services
                 client.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                // Формируем запрос к API СДЭК
+                // ✅ ПРАВИЛЬНЫЙ формат запроса
                 var request = new
                 {
-                    from_location = new { code = _options.SenderCityId },
-                    to_location = new { code = cityCode },
+                    type = 1, // 1 = интернет-магазин
+                    currency = 1, // 1 = RUB
+                    lang = "rus",
+                    from_location = new
+                    {
+                        code = _options.SenderCityId,
+                        country_code = "RU"
+                    },
+                    to_location = new
+                    {
+                        code = calculateDeliveryRequest.CityCode,
+                        country_code = "RU"
+                    },
                     packages = new[]
                     {
                         new
                         {
-                            weight = (double)totalWeight,
-                            length = length,
-                            width = width,
-                            height = height
+                            weight = (int)(calculateDeliveryRequest.TotalWeight * 1000), // ✅ вес в ГРАММАХ
+                            length = calculateDeliveryRequest.Length,
+                            width = calculateDeliveryRequest.Width,
+                            height = calculateDeliveryRequest.Height
                         }
                     }
                 };
@@ -110,6 +120,7 @@ namespace WoodMarket.Services
                     Encoding.UTF8,
                     "application/json");
 
+                // ✅ Эндпоинт для расчёта по всем доступным тарифам
                 var response = await client.PostAsync(
                     $"{_options.BaseUrl}/calculator/tarifflist",
                     content);
@@ -144,7 +155,7 @@ namespace WoodMarket.Services
                     };
                 }
 
-                // Выбираем самый дешевый тариф
+                // Выбираем самый дешёвый тариф
                 var bestTariff = result.Tariffs
                     .Where(t => t.DeliverySum.HasValue && t.DeliverySum > 0)
                     .OrderBy(t => t.DeliverySum)
@@ -163,11 +174,11 @@ namespace WoodMarket.Services
                 return new DeliveryCalculationResult
                 {
                     IsSuccess = true,
-                    TariffName = bestTariff.TariffName,
-                    Cost = bestTariff.DeliverySum.Value,
-                    MinDays = bestTariff.PeriodMin,
-                    MaxDays = bestTariff.PeriodMax,
-                    Currency = result.Currency ?? "RUB"
+                    TariffName = bestTariff.TariffName,         // "Экономичная посылка склад-склад"
+                    Cost = bestTariff.DeliverySum.Value,         // 245.0
+                    MinDays = bestTariff.PeriodMin,              // 0
+                    MaxDays = bestTariff.PeriodMax,              // 1
+                    Currency = "RUB"
                 };
             }
             catch (Exception ex)
@@ -267,25 +278,48 @@ namespace WoodMarket.Services
 
         private class TariffResponse
         {
+            [JsonPropertyName("tariff_codes")]
             public List<Tariff> Tariffs { get; set; }
-            public string Currency { get; set; }
+
         }
 
         private class Tariff
         {
+            [JsonPropertyName("tariff_code")]
+            public int TariffCode { get; set; }
+
+            [JsonPropertyName("tariff_name")]
             public string TariffName { get; set; }
+
+            [JsonPropertyName("tariff_description")]
+            public string TariffDescription { get; set; }
+
+            [JsonPropertyName("delivery_mode")]
+            public int DeliveryMode { get; set; }
+
+            [JsonPropertyName("delivery_sum")]
             public decimal? DeliverySum { get; set; }
+
+            [JsonPropertyName("period_min")]
             public int? PeriodMin { get; set; }
+
+            [JsonPropertyName("period_max")]
             public int? PeriodMax { get; set; }
+
+            [JsonPropertyName("calendar_min")]
+            public int? CalendarMin { get; set; }
+
+            [JsonPropertyName("calendar_max")]
+            public int? CalendarMax { get; set; }
         }
     }
 
     public class CdekOptions
     {
-        public string ClientId { get; set; }
-        public string ClientSecret { get; set; }
-        public string BaseUrl { get; set; } = "https://api.cdek.ru/v2";
-        public int SenderCityId { get; set; } = 44; // Москва
+        public string ClientId { get; set; } = "wqGwiQx0gg8mLtiEKsUinjVSICCjtTEP";
+        public string ClientSecret { get; set; } = "RmAmgvSgSl1yirlz9QupbzOJVqhCxcP5";
+        public string BaseUrl { get; set; } = "https://api.edu.cdek.ru/v2";
+        public int SenderCityId { get; set; } = 269; // Томск
         public bool IsTest { get; set; } = true;
     }
 }

@@ -26,12 +26,23 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "Профиль 1": {
+      "commandName": "IIS",
+      "workingDirectory": "H:\\woodMarket",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     }
   },
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "iisSettings": {
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
+    "iis": {
+      "applicationUrl": "http://localhost:80/",
+      "sslPort": 0
+    },
     "iisExpress": {
       "applicationUrl": "http://localhost:64448/",
       "sslPort": 44340

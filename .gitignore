@@ -427,3 +427,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+*.sql
+WoodMarket/nginx-local.conf
+WoodMarket/nginx.conf
+WoodMarket/docker-compose.yml
+WoodMarket/Dockerfile
+WoodMarket/.dockerignore
