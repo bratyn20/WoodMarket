@@ -31,6 +31,10 @@
     <Folder Include="wwwroot\images\brands\" />
     <Folder Include="wwwroot\images\products\" />
     <Folder Include="init-scripts\" />
+	  <Content Include="client\dist\**\*">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		  <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	  </Content>
   </ItemGroup>
 
   <ItemGroup>

@@ -4,6 +4,7 @@ using System.Text;
 using WoodMarket.Models;
 using System.Text.Json.Serialization;
 using WoodMarket.Dto;
+using WoodMarket.Models.Cdek;
 
 namespace WoodMarket.Services
 {
@@ -190,6 +191,49 @@ namespace WoodMarket.Services
                     ErrorMessage = "Внутренняя ошибка сервера",
                     Cost = 0
                 };
+            }
+        }
+
+        public async Task<List<CdekOffice>> GetDeliveryPointsAsync(int cityCode, bool isHandout = true)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                var token = await GetAccessTokenAsync();
+
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                // ✅ Правильный URL с параметрами
+                var url = $"{_options.BaseUrl}/deliverypoints?city_code={cityCode}&is_handout={isHandout}";
+
+                var response = await client.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Ошибка при получении ПВЗ: {StatusCode}, {Error}",
+                        response.StatusCode, error);
+                    return new List<CdekOffice>();
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    WriteIndented = false
+                };
+
+                // Десериализуйте JSON в список объектов CdekOffice
+                var offices = JsonSerializer.Deserialize<List<CdekOffice>>(json, options);
+
+                return offices ?? new List<CdekOffice>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при получении ПВЗ: {CityCode}", cityCode);
+                return new List<CdekOffice>();
             }
         }
 

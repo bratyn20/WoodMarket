@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WoodMarket.Dto;
+using WoodMarket.Dto.Cdek;
 using WoodMarket.Services;
 
 namespace WoodMarket.Controllers
@@ -39,6 +40,35 @@ namespace WoodMarket.Controllers
         public async Task<ActionResult> CalculateDelivery(CalculateDeliveryRequest calculateDeliveryRequest)
         {
             var result = await _cdekDeliveryService.CalculateDeliveryAsync(calculateDeliveryRequest);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Получить список пунктов выдачи СДЭК в городе
+        /// </summary>
+        [HttpGet("points")]
+        public async Task<IActionResult> GetDeliveryPoints([FromQuery] int cityCode)
+        {
+            if (cityCode <= 0)
+                return BadRequest(new { message = "Укажите корректный код города" });
+
+            var offices = await _cdekDeliveryService.GetDeliveryPointsAsync(cityCode, isHandout: true);
+
+            var result = offices.Select(o => new DeliveryPointDto
+            {
+                Code = o.Code,
+                Name = o.Name,
+                Address = o.Location?.AddressFull ?? o.Location?.Address,
+                WorkTime = o.WorkTime,
+                Phone = o.Phones?.FirstOrDefault()?.Number,
+                Longitude = o.Location?.Longitude,
+                Latitude = o.Location?.Latitude,
+                Type = o.Type,
+                IsDressingRoom = o.IsDressingRoom,
+                HaveCashless = o.HaveCashless,
+                AllowedCod = o.AllowedCod
+            }).ToList();
+
             return Ok(result);
         }
     }
