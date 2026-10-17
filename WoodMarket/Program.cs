@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
@@ -163,7 +164,17 @@ namespace WoodMarket
                 });
             });
 
+            builder.Services.AddSpaStaticFiles(configuration =>
+            {
+                configuration.RootPath = "client/dist";
+            });
+
             var app = builder.Build();
+
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
 
             //if (!app.Environment.IsProduction())
             //{
@@ -188,13 +199,15 @@ namespace WoodMarket
             // Статика API из wwwroot
             app.UseStaticFiles();
 
-            // Статика клиента из client/dist
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = new PhysicalFileProvider(
-                    Path.Combine(builder.Environment.ContentRootPath, "client", "dist")),
-                RequestPath = ""
-            });
+            app.UseSpaStaticFiles();
+
+            //// Статика клиента из client/dist
+            //app.UseStaticFiles(new StaticFileOptions
+            //{
+            //    FileProvider = new PhysicalFileProvider(
+            //        Path.Combine(builder.Environment.ContentRootPath, "client", "dist")),
+            //    RequestPath = ""
+            //});
 
             // Создание папки для изображений
             var webRoot = app.Environment.WebRootPath
@@ -210,12 +223,28 @@ namespace WoodMarket
 
             app.MapControllers();
 
-            // SPA-фолбэк
-            app.MapFallbackToFile("index.html", new StaticFileOptions
+            app.UseSpa(spa =>
             {
-                FileProvider = new PhysicalFileProvider(
-                    Path.Combine(builder.Environment.ContentRootPath, "client", "dist"))
+                // Чтобы не мешать API-маршрутам
+                spa.Options.SourcePath = "client";
+
+                // В продакшене просто отдаём index.html из client/dist
+                if (!app.Environment.IsDevelopment())
+                {
+                    spa.Options.DefaultPageStaticFileOptions = new StaticFileOptions
+                    {
+                        FileProvider = new PhysicalFileProvider(
+                            Path.Combine(builder.Environment.ContentRootPath, "client", "dist"))
+                    };
+                }
             });
+
+            //// SPA-фолбэк
+            //app.MapFallbackToFile("index.html", new StaticFileOptions
+            //{
+            //    FileProvider = new PhysicalFileProvider(
+            //        Path.Combine(builder.Environment.ContentRootPath, "client", "dist"))
+            //});
 
             app.Run();
         }
